@@ -8,6 +8,7 @@ interface EcosystemElement {
   y: number;
   size: number;
   health: number;
+  rotation?: number;
 }
 
 const EcosystemCanvas = () => {
@@ -31,6 +32,81 @@ const EcosystemCanvas = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
+    const drawPlant = (x: number, y: number, size: number) => {
+      // Draw trunk
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(x - size/8, y, size/4, size);
+      
+      // Draw leaves
+      ctx.fillStyle = '#4CAF50';
+      ctx.beginPath();
+      ctx.moveTo(x - size/2, y);
+      ctx.lineTo(x, y - size);
+      ctx.lineTo(x + size/2, y);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Add a second layer of leaves
+      ctx.beginPath();
+      ctx.moveTo(x - size/2.5, y - size/2);
+      ctx.lineTo(x, y - size*1.3);
+      ctx.lineTo(x + size/2.5, y - size/2);
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    const drawAnimal = (x: number, y: number, size: number) => {
+      // Body
+      ctx.fillStyle = '#8B4513';
+      ctx.beginPath();
+      ctx.ellipse(x, y, size, size/1.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Head
+      ctx.beginPath();
+      ctx.ellipse(x + size, y - size/4, size/2, size/2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Eye
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(x + size*1.2, y - size/3, size/6, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Pupil
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.arc(x + size*1.2, y - size/3, size/12, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    const drawWater = (x: number, y: number, size: number) => {
+      // Main water body
+      ctx.fillStyle = '#87CEEB';
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Add wave effect
+      ctx.strokeStyle = '#B0E2FF';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = -size; i < size; i += 10) {
+        ctx.moveTo(x + i, y);
+        ctx.quadraticCurveTo(
+          x + i + 5, y - 5,
+          x + i + 10, y
+        );
+      }
+      ctx.stroke();
+      
+      // Add shine
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.beginPath();
+      ctx.ellipse(x - size/3, y - size/3, size/4, size/6, Math.PI/4, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
     // Animation loop
     const animate = () => {
       ctx.fillStyle = '#F2FCE2';
@@ -40,22 +116,13 @@ const EcosystemCanvas = () => {
       elements.forEach(element => {
         switch (element.type) {
           case 'plant':
-            ctx.fillStyle = '#4CAF50';
-            ctx.beginPath();
-            ctx.arc(element.x, element.y, element.size, 0, Math.PI * 2);
-            ctx.fill();
+            drawPlant(element.x, element.y, element.size);
             break;
           case 'animal':
-            ctx.fillStyle = '#8B4513';
-            ctx.beginPath();
-            ctx.arc(element.x, element.y, element.size, 0, Math.PI * 2);
-            ctx.fill();
+            drawAnimal(element.x, element.y, element.size);
             break;
           case 'water':
-            ctx.fillStyle = '#87CEEB';
-            ctx.beginPath();
-            ctx.arc(element.x, element.y, element.size, 0, Math.PI * 2);
-            ctx.fill();
+            drawWater(element.x, element.y, element.size);
             break;
         }
       });
@@ -83,7 +150,8 @@ const EcosystemCanvas = () => {
       x,
       y,
       size: selectedType === 'water' ? 30 : 20,
-      health: 100
+      health: 100,
+      rotation: Math.random() * Math.PI * 2
     };
 
     setElements(prev => [...prev, newElement]);
