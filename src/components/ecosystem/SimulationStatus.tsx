@@ -41,6 +41,32 @@ const SimulationStatus = ({ isSimulating, elements }: SimulationStatusProps) => 
     );
   };
 
+  const getInteractionExplanation = () => {
+    const hasPlants = elements.some(el => el.type === 'plant' || el.type === 'tree');
+    const hasAnimals = elements.some(el => el.type === 'bird' || el.type === 'fish');
+    const hasWater = elements.some(el => el.type === 'water');
+
+    return (
+      <div className="space-y-2 text-sm">
+        <p className="font-medium">Current Interactions:</p>
+        <ul className="space-y-1 text-muted-foreground">
+          {hasPlants && hasWater && (
+            <li>• Plants are absorbing water for growth</li>
+          )}
+          {hasPlants && hasAnimals && (
+            <li>• Animals are interacting with plants for food</li>
+          )}
+          {hasWater && (
+            <li>• Water sources are maintaining ecosystem balance</li>
+          )}
+          {hasAnimals && (
+            <li>• Animals are moving and exploring the environment</li>
+          )}
+        </ul>
+      </div>
+    );
+  };
+
   return (
     <Card className="p-4 space-y-4 bg-white/50">
       <div className="flex items-center gap-2">
@@ -64,6 +90,7 @@ const SimulationStatus = ({ isSimulating, elements }: SimulationStatusProps) => 
         </div>
 
         {elements.length > 0 && getEcosystemDescription()}
+        {isSimulating && elements.length > 0 && getInteractionExplanation()}
 
         <div className="text-sm text-muted-foreground">
           <p className="font-medium mb-2">How it works:</p>
