@@ -27,7 +27,7 @@ const EcosystemCanvas = ({ isSimulating }: Props) => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLCanvasElement>) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -102,17 +102,11 @@ const EcosystemCanvas = ({ isSimulating }: Props) => {
           onLoad={loadEcosystem}
         />
         <Card className="relative w-full h-[600px] overflow-hidden">
-          <div
-            className="w-full h-full"
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <CanvasManager 
-              elements={elements}
-              isSimulating={isSimulating}
-              onElementMove={handleElementMove}
-            />
-          </div>
+          <CanvasManager 
+            elements={elements}
+            isSimulating={isSimulating}
+            onElementMove={handleElementMove}
+          />
         </Card>
       </div>
       <div className="lg:col-span-1">
