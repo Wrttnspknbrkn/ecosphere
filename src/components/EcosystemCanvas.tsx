@@ -4,7 +4,7 @@ import { toast } from './ui/use-toast';
 import { EcosystemElement } from './ecosystem/EcosystemElement';
 import { ElementControls } from './ecosystem/ElementControls';
 
-interface EcosystemElement {
+interface Element {
   id: string;
   type: string;
   x: number;
@@ -14,11 +14,16 @@ interface EcosystemElement {
   rotation?: number;
 }
 
-const EcosystemCanvas = () => {
+interface Props {
+  isSimulating: boolean;
+}
+
+const EcosystemCanvas = ({ isSimulating }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [elements, setElements] = useState<EcosystemElement[]>([]);
+  const [elements, setElements] = useState<Element[]>([]);
   const [selectedType, setSelectedType] = useState<string>('plant');
   const [isDragging, setIsDragging] = useState(false);
+  const [draggedElement, setDraggedElement] = useState<Element | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -35,13 +40,23 @@ const EcosystemCanvas = () => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Animation loop
+    let animationFrameId: number;
+
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#F2FCE2';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       elements.forEach(element => {
+        if (isSimulating) {
+          // Add subtle movement to elements during simulation
+          element.rotation = (element.rotation || 0) + 0.01;
+          if (element.type === 'bird' || element.type === 'fish') {
+            element.x += Math.sin(element.rotation) * 0.5;
+            element.y += Math.cos(element.rotation) * 0.5;
+          }
+        }
+
         const props = {
           ...element,
           ctx
@@ -49,15 +64,59 @@ const EcosystemCanvas = () => {
         EcosystemElement(props);
       });
 
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     };
 
     animate();
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
     };
-  }, [elements]);
+  }, [elements, isSimulating]);
+
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Find clicked element
+    const clickedElement = elements.find(element => {
+      const dx = x - element.x;
+      const dy = y - element.y;
+      return Math.sqrt(dx * dx + dy * dy) < element.size;
+    });
+
+    if (clickedElement) {
+      setDraggedElement(clickedElement);
+      setIsDragging(true);
+    }
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging || !draggedElement) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setElements(prev => prev.map(element => 
+      element.id === draggedElement.id 
+        ? { ...element, x, y }
+        : element
+    ));
+  };
+
+  const handleCanvasMouseUp = () => {
+    setIsDragging(false);
+    setDraggedElement(null);
+  };
 
   const handleDragStart = (e: React.DragEvent, type: string) => {
     e.dataTransfer.setData('elementType', type);
@@ -78,7 +137,7 @@ const EcosystemCanvas = () => {
     const y = e.clientY - rect.top;
     const type = e.dataTransfer.getData('elementType');
 
-    const newElement: EcosystemElement = {
+    const newElement: Element = {
       id: `${type}-${Date.now()}`,
       type,
       x,
@@ -141,7 +200,11 @@ const EcosystemCanvas = () => {
       <Card className="relative w-full h-[600px] overflow-hidden">
         <canvas
           ref={canvasRef}
-          className={`w-full h-full ecosystem-canvas ${isDragging ? 'cursor-copy' : 'cursor-pointer'}`}
+          className={`w-full h-full ecosystem-canvas ${isDragging ? 'cursor-move' : 'cursor-pointer'}`}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          onMouseLeave={handleCanvasMouseUp}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
         />
