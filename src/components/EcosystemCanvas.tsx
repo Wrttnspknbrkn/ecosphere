@@ -23,17 +23,7 @@ const EcosystemCanvas = ({ isSimulating }: Props) => {
   const [elements, setElements] = useState<Element[]>([]);
   const [selectedType, setSelectedType] = useState<string>('plant');
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const type = e.dataTransfer.getData('elementType');
-
+  const handleElementAdd = (type: string, x: number, y: number) => {
     const newElement: Element = {
       id: `${type}-${Date.now()}`,
       type,
@@ -106,6 +96,7 @@ const EcosystemCanvas = ({ isSimulating }: Props) => {
             elements={elements}
             isSimulating={isSimulating}
             onElementMove={handleElementMove}
+            onElementAdd={handleElementAdd}
           />
         </Card>
       </div>

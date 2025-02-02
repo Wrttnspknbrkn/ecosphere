@@ -15,9 +15,15 @@ interface CanvasManagerProps {
   elements: Element[];
   isSimulating: boolean;
   onElementMove: (id: string, x: number, y: number) => void;
+  onElementAdd?: (type: string, x: number, y: number) => void;
 }
 
-const CanvasManager = ({ elements, isSimulating, onElementMove }: CanvasManagerProps) => {
+const CanvasManager = ({ 
+  elements, 
+  isSimulating, 
+  onElementMove,
+  onElementAdd 
+}: CanvasManagerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -101,11 +107,30 @@ const CanvasManager = ({ elements, isSimulating, onElementMove }: CanvasManagerP
     }
   };
 
+  const handleDragOver = (e: React.DragEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas || !onElementAdd) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const type = e.dataTransfer.getData('elementType');
+
+    onElementAdd(type, x, y);
+  };
+
   return (
     <canvas
       ref={canvasRef}
       className="w-full h-full cursor-pointer"
       onMouseDown={handleCanvasMouseDown}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     />
   );
 };
