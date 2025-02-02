@@ -1,8 +1,9 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from './ui/card';
 import { toast } from './ui/use-toast';
-import { EcosystemElement } from './ecosystem/EcosystemElement';
 import { ElementControls } from './ecosystem/ElementControls';
+import CanvasManager from './ecosystem/CanvasManager';
+import SimulationStatus from './ecosystem/SimulationStatus';
 
 interface Element {
   id: string;
@@ -19,109 +20,8 @@ interface Props {
 }
 
 const EcosystemCanvas = ({ isSimulating }: Props) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [elements, setElements] = useState<Element[]>([]);
   const [selectedType, setSelectedType] = useState<string>('plant');
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedElement, setDraggedElement] = useState<Element | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const resizeCanvas = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    let animationFrameId: number;
-
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#F2FCE2';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      elements.forEach(element => {
-        if (isSimulating) {
-          // Add subtle movement to elements during simulation
-          element.rotation = (element.rotation || 0) + 0.01;
-          if (element.type === 'bird' || element.type === 'fish') {
-            element.x += Math.sin(element.rotation) * 0.5;
-            element.y += Math.cos(element.rotation) * 0.5;
-          }
-        }
-
-        const props = {
-          ...element,
-          ctx
-        };
-        EcosystemElement(props);
-      });
-
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [elements, isSimulating]);
-
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Find clicked element
-    const clickedElement = elements.find(element => {
-      const dx = x - element.x;
-      const dy = y - element.y;
-      return Math.sqrt(dx * dx + dy * dy) < element.size;
-    });
-
-    if (clickedElement) {
-      setDraggedElement(clickedElement);
-      setIsDragging(true);
-    }
-  };
-
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDragging || !draggedElement) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    setElements(prev => prev.map(element => 
-      element.id === draggedElement.id 
-        ? { ...element, x, y }
-        : element
-    ));
-  };
-
-  const handleCanvasMouseUp = () => {
-    setIsDragging(false);
-    setDraggedElement(null);
-  };
-
-  const handleDragStart = (e: React.DragEvent, type: string) => {
-    e.dataTransfer.setData('elementType', type);
-    setIsDragging(true);
-  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -129,10 +29,7 @@ const EcosystemCanvas = ({ isSimulating }: Props) => {
 
   const handleDrop = (e: React.DragEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
+    const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const type = e.dataTransfer.getData('elementType');
@@ -148,11 +45,16 @@ const EcosystemCanvas = ({ isSimulating }: Props) => {
     };
 
     setElements(prev => [...prev, newElement]);
-    setIsDragging(false);
     toast({
       title: "Element Added",
       description: `Added new ${type} to the ecosystem`,
     });
+  };
+
+  const handleElementMove = (id: string, x: number, y: number) => {
+    setElements(prev => prev.map(element => 
+      element.id === id ? { ...element, x, y } : element
+    ));
   };
 
   const saveEcosystem = () => {
@@ -191,24 +93,34 @@ const EcosystemCanvas = ({ isSimulating }: Props) => {
   };
 
   return (
-    <div className="space-y-4">
-      <ElementControls 
-        selectedType={selectedType}
-        onTypeSelect={setSelectedType}
-        onDragStart={handleDragStart}
-      />
-      <Card className="relative w-full h-[600px] overflow-hidden">
-        <canvas
-          ref={canvasRef}
-          className={`w-full h-full ecosystem-canvas ${isDragging ? 'cursor-move' : 'cursor-pointer'}`}
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseUp={handleCanvasMouseUp}
-          onMouseLeave={handleCanvasMouseUp}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+      <div className="lg:col-span-3 space-y-4">
+        <ElementControls 
+          selectedType={selectedType}
+          onTypeSelect={setSelectedType}
+          onSave={saveEcosystem}
+          onLoad={loadEcosystem}
         />
-      </Card>
+        <Card className="relative w-full h-[600px] overflow-hidden">
+          <div
+            className="w-full h-full"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            <CanvasManager 
+              elements={elements}
+              isSimulating={isSimulating}
+              onElementMove={handleElementMove}
+            />
+          </div>
+        </Card>
+      </div>
+      <div className="lg:col-span-1">
+        <SimulationStatus 
+          isSimulating={isSimulating}
+          elements={elements}
+        />
+      </div>
     </div>
   );
 };
