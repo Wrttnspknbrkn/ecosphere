@@ -11,35 +11,39 @@ interface EcosystemElementProps {
   ctx: CanvasRenderingContext2D;
 }
 
-export const EcosystemElement: React.FC<EcosystemElementProps> = ({
+export const EcosystemElement = ({
   type,
   x,
   y,
   size,
+  rotation = 0,
   ctx
-}) => {
-  React.useEffect(() => {
-    switch (type) {
-      case 'plant':
-        drawPlant(ctx, x, y, size);
-        break;
-      case 'tree':
-        drawTree(ctx, x, y, size);
-        break;
-      case 'animal':
-        drawAnimal(ctx, x, y, size);
-        break;
-      case 'bird':
-        drawBird(ctx, x, y, size);
-        break;
-      case 'fish':
-        drawFish(ctx, x, y, size);
-        break;
-      case 'water':
-        drawWater(ctx, x, y, size);
-        break;
-    }
-  }, [type, x, y, size, ctx]);
-
+}: EcosystemElementProps) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  
+  switch (type) {
+    case 'plant':
+      drawPlant(ctx, 0, 0, size);
+      break;
+    case 'tree':
+      drawTree(ctx, 0, 0, size);
+      break;
+    case 'animal':
+      drawAnimal(ctx, 0, 0, size);
+      break;
+    case 'bird':
+      drawBird(ctx, 0, 0, size);
+      break;
+    case 'fish':
+      drawFish(ctx, 0, 0, size);
+      break;
+    case 'water':
+      drawWater(ctx, 0, 0, size);
+      break;
+  }
+  
+  ctx.restore();
   return null;
 };
